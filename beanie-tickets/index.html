@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beanie Ticket Generator</title>
+<style>
+  :root {
+    --blue: #1e40af; --blue-light: #dbeafe;
+    --brown: #92400e; --brown-light: #fef3c7;
+    --green: #166534; --green-light: #dcfce7;
+    --gray: #374151; --border: #d1d5db; --bg: #f9fafb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--gray); font-size: 13px; }
+
+  header { background: var(--blue); color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header span { font-size: 12px; opacity: 0.8; }
+  main { padding: 16px 20px; max-width: 1400px; margin: 0 auto; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .card-header { padding: 10px 16px; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+  .card-header.blue  { background: var(--blue-light);  color: var(--blue);  border-bottom: 1px solid #bfdbfe; }
+  .card-header.brown { background: var(--brown-light); color: var(--brown); border-bottom: 1px solid #fde68a; }
+  .card-header.green { background: var(--green-light); color: var(--green); border-bottom: 1px solid #bbf7d0; }
+  .card-body { padding: 14px 16px; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 3px; }
+  .form-group label { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.03em; }
+  .form-group input, .form-group select { border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-size: 13px; width: 100%; }
+  .form-group input:focus, .form-group select:focus { outline: 2px solid var(--blue); border-color: var(--blue); }
+  .form-group input[readonly] { background: #f3f4f6; color: #6b7280; }
+  .computed { background: #fffbeb !important; color: #92400e !important; }
+  .prog-desc-wrap { display: flex; gap: 4px; align-items: flex-end; }
+  .prog-desc-wrap input { flex: 1; }
+  .span2 { grid-column: span 2; }
+  .span3 { grid-column: span 3; }
+  .span4 { grid-column: span 4; }
+
+  .btn { border: none; border-radius: 5px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { opacity: 0.7; }
+  .btn-blue   { background: var(--blue);  color: #fff; }
+  .btn-brown  { background: #b45309;      color: #fff; }
+  .btn-green  { background: #15803d;      color: #fff; }
+  .btn-gray   { background: #6b7280;      color: #fff; }
+  .btn-red    { background: #dc2626;      color: #fff; }
+  .btn-amber  { background: #d97706;      color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--gray); }
+  .btn-sm { padding: 4px 9px; font-size: 11px; }
+  .btn-xs { padding: 2px 7px; font-size: 11px; border-radius: 3px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f3f4f6; padding: 6px 8px; text-align: left; border: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
+  td { padding: 5px 8px; border: 1px solid var(--border); vertical-align: middle; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .action-cell { white-space: nowrap; display: flex; gap: 4px; }
+
+  .hidden { display: none !important; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
+  .modal { background: #fff; border-radius: 10px; width: 100%; max-width: 700px; max-height: 92vh; display: flex; flex-direction: column; }
+  .modal-lg { max-width: 980px; }
+  .modal-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { font-size: 15px; font-weight: 700; }
+  .modal-body { padding: 16px 18px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; line-height: 1; }
+
+  /* Summary card inside bundle modal */
+  .summary-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .summary-box h3 { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 10px; }
+  .summary-kv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; }
+  .kv { display: flex; flex-direction: column; gap: 2px; }
+  .kv-label { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; }
+  .kv-value { font-size: 13px; font-weight: 600; }
+  .bundle-list { margin-top: 10px; }
+  .bundle-list table { font-size: 12px; }
+
+  /* Ticket cards in print modal */
+  .ticket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .ticket-card { border: 2px solid #374151; border-radius: 4px; overflow: hidden; cursor: pointer; }
+  .ticket-card.selected { border-color: var(--blue); box-shadow: 0 0 0 3px #bfdbfe; }
+  .ticket-header { background: #1e3a5f; color: #fff; padding: 5px 8px; font-size: 10px; font-weight: 700; display: flex; justify-content: space-between; }
+  .ticket-body { padding: 6px 8px; }
+  .ticket-row { display: flex; gap: 6px; margin-bottom: 3px; font-size: 10px; }
+  .ticket-field { flex: 1; }
+  .ticket-label { font-size: 8px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 1px; }
+  .ticket-value { font-weight: 600; font-size: 10px; border-bottom: 1px solid #d1d5db; min-height: 14px; }
+  .ticket-section { background: #374151; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; margin: 4px -8px; }
+  .write-line { border-bottom: 1px solid #d1d5db; min-height: 14px; margin-bottom: 3px; }
+
+  /* Edit mode indicator */
+  .edit-mode-banner { background: #fef3c7; border: 1px solid #fde68a; border-radius: 5px; padding: 8px 12px; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #92400e; display: flex; align-items: center; justify-content: space-between; }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; font-size: 9pt; }
+    header, main, .modal-overlay { display: none !important; }
+    .print-area { display: block !important; }
+    .ticket-page { display: flex; flex-direction: column; height: 297mm; page-break-after: always; box-sizing: border-box; padding: 3mm; gap: 2mm; }
+    .ticket-print { flex: 1; border: 0.75pt solid #374151; padding: 4pt 5pt; display: flex; flex-direction: column; overflow: hidden; }
+    .tp-header { background: #1e3a5f; color: #fff; padding: 3pt 5pt; font-size: 8pt; font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 3pt; }
+    .tp-row { display: flex; gap: 4pt; margin-bottom: 2pt; font-size: 7pt; }
+    .tp-field { flex: 1; min-width: 0; }
+    .tp-label { font-size: 5pt; font-weight: 700; color: #374151; text-transform: uppercase; display: block; }
+    .tp-value { font-weight: 700; border-bottom: 0.5pt solid #374151; min-height: 10pt; font-size: 8pt; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tp-section { background: #374151; color: #fff; font-size: 6pt; font-weight: 700; padding: 1.5pt 3pt; margin: 2pt 0; }
+    .tp-write { border-bottom: 0.5pt solid #374151; min-height: 11pt; display: block; }
+    .tp-write-row { display: flex; gap: 4pt; margin-bottom: 2pt; }
+    .tp-write-field { flex: 1; }
+    .colour-block { display: grid; grid-template-columns: 1fr 1fr; gap: 3pt; }
+  }
+  .print-area { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🧶 Beanie Ticket Generator</h1>
+    <span>Production Order Management System</span>
+  </div>
+</header>
+
+<main>
+
+<!-- ORDER HEADER -->
+<div class="card" id="orderHeaderCard">
+  <div class="card-header brown">
+    <span>📋 Order Capture Header</span>
+    <span style="font-size:11px;font-weight:400;">Last Order #: <strong id="displayLastOrder">0</strong></span>
+  </div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Customer *</label>
+        <input type="text" id="customer" placeholder="e.g. Urban Supply" oninput="updateDerived()">
+      </div>
+      <div class="form-group">
+        <label>ABR *</label>
+        <input type="text" id="abr" placeholder="e.g. UBS" oninput="updateDerived()">
+      </div>
+      <div class="form-group">
+        <label>Order Description</label>
+        <input type="text" id="orderDescription" readonly class="computed">
+      </div>
+      <div class="form-group">
+        <label>Date Issued</label>
+        <input type="date" id="dateIssued">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-brown" onclick="createOrder()">📝 Create Order</button>
+      <button class="btn btn-gray" onclick="startNewOrder()">🔄 Start New Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER SUMMARY -->
+<div class="card hidden" id="orderSummaryCard">
+  <div class="card-header blue">
+    <span>📊 Order Summary</span>
+    <button class="btn btn-sm btn-outline" onclick="toggleSection('orderSummaryBody')">Toggle</button>
+  </div>
+  <div id="orderSummaryBody">
+    <div class="card-body" style="padding-bottom:4px;">
+      <div style="font-weight:600;margin-bottom:6px;font-size:12px;">Order Header</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Order Description</th><th>Customer</th><th>ABR</th><th>Date Issued</th></tr></thead>
+          <tbody id="summaryHeaderBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-body" style="padding-top:4px;">
+      <div style="font-weight:600;margin-bottom:6px;font-size:12px;">Products in this Order</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Actions</th><th>Product Code</th><th>Program Description</th><th>Pattern Desc</th>
+            <th>Machine</th><th>Size</th><th>Colours</th><th>Bundle Size</th><th>Batch Qty</th><th>Bundles</th>
+          </tr></thead>
+          <tbody id="summaryProductsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT DETAILS -->
+<div class="card hidden" id="productDetailsCard">
+  <div class="card-header green">
+    <span>🏷️ Order Capture Details — Product Entry</span>
+    <span style="font-size:11px;font-weight:400;">Product Code: <strong id="displayProductCode">BN1</strong></span>
+  </div>
+  <div class="card-body">
+    <div id="editModeBanner" class="edit-mode-banner hidden">
+      ✏️ Editing product <strong id="editModeLabel"></strong> — bundles will be regenerated on confirm.
+      <button class="btn btn-sm btn-outline" onclick="cancelEditProduct()">Cancel Edit</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Product Code</label>
+        <input type="text" id="productCode" readonly class="computed">
+      </div>
+      <div class="form-group span2">
+        <label>Program Description <span style="font-weight:400;font-size:10px;color:#6b7280;">(auto — editable)</span></label>
+        <div class="prog-desc-wrap">
+          <input type="text" id="programDescription" class="computed">
+          <button class="btn btn-xs btn-outline" title="Reset to auto-computed value" onclick="resetProgDesc()">⟳</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Product Desc Addition</label>
+        <input type="text" id="productDescAddition" value="Blend" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>Bundle Size</label>
+        <input type="number" id="bundleSize" value="50" min="1">
+      </div>
+      <div class="form-group">
+        <label>Batch Total QTY *</label>
+        <input type="number" id="batchTotalQty" min="1">
+      </div>
+      <div class="form-group">
+        <label>No. of Panels</label>
+        <input type="number" id="noOfPanels" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Style</label>
+        <input type="text" id="style" value="BN_TU" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>Pattern Description</label>
+        <input type="text" id="patternDescription">
+      </div>
+      <div class="form-group">
+        <label>Machine-Type-Desc</label>
+        <input type="text" id="machineTypeDesc" value="502HP">
+      </div>
+      <div class="form-group">
+        <label>Size Description</label>
+        <input type="text" id="sizeDescription" value="STD">
+      </div>
+      <div class="form-group">
+        <label>Product Type</label>
+        <input type="text" id="productTypeDesc" value="Beanie">
+      </div>
+      <div class="form-group">
+        <label>Colour 1</label>
+        <input type="text" id="colour1" placeholder="e.g. P.Wine" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>Colour 2</label>
+        <input type="text" id="colour2" placeholder="e.g. Mavre" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>Colour 3</label>
+        <input type="text" id="colour3" placeholder="optional" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>Colour 4</label>
+        <input type="text" id="colour4" value="x" oninput="updateDerivedSoft()">
+      </div>
+      <div class="form-group">
+        <label>CMT Instructions</label>
+        <input type="text" id="cmtInstructions" value="None">
+      </div>
+      <div class="form-group">
+        <label>Knitting Instructions</label>
+        <input type="text" id="knittingInstructions" value="None">
+      </div>
+      <div class="form-group span2">
+        <label>Program Location</label>
+        <input type="text" id="programLocation" placeholder="e.g. CMS502.Beanie-Bird-3coljacq-502/530">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="createTicketBundles()">🎟️ Create Ticket Bundles</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUNDLES TABLE -->
+<div class="card hidden" id="bundlesCard">
+  <div class="card-header blue">
+    <span>📦 Product Bundles</span>
+    <button class="btn btn-sm btn-blue" onclick="openPrintModal()">🖨️ Print Tickets</button>
+  </div>
+  <div class="card-body">
+    <div class="tbl-wrap">
+      <table id="bundlesTable">
+        <thead><tr>
+          <th>Actions</th><th>ID</th><th>Bundle #</th><th>Bundle Name</th>
+          <th>Date Issued</th><th>Batch No</th><th>Product Code</th>
+          <th>Program Description</th><th>Pattern Desc</th><th>Machine</th><th>Total Bundles</th>
+          <th>Order</th><th>Customer</th><th>Bundle QTY</th><th>Size</th>
+          <th>Batch QTY</th><th>Prod Type</th><th>Panels</th>
+          <th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>CMT</th><th>Style</th>
+        </tr></thead>
+        <tbody id="bundlesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- BUNDLE SUMMARY MODAL (replaces preview popup) -->
+<div class="modal-overlay hidden" id="bundleSummaryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>✅ Ticket Bundles Created</h2>
+      <button class="close-btn" onclick="closeModal('bundleSummaryModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="summary-box">
+        <h3>📦 Product Summary</h3>
+        <div class="summary-kv" id="summaryKV"></div>
+      </div>
+      <div class="bundle-list">
+        <div style="font-weight:600;margin-bottom:6px;font-size:12px;">Bundles Created</div>
+        <table>
+          <thead><tr><th>#</th><th>Bundle Name</th><th>Bundle QTY</th></tr></thead>
+          <tbody id="summaryBundleRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-blue" onclick="closeModal('bundleSummaryModal')">✔ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUNDLE EDIT MODAL -->
+<div class="modal-overlay hidden" id="bundleEditModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>✏️ Edit Bundle</h2>
+      <button class="close-btn" onclick="closeModal('bundleEditModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editBundleId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Date Issued</label>
+          <input type="date" id="eb_dateIssued">
+        </div>
+        <div class="form-group span3">
+          <label>Program Description</label>
+          <input type="text" id="eb_programDescription">
+        </div>
+        <div class="form-group span2">
+          <label>Product Description</label>
+          <input type="text" id="eb_productDescription">
+        </div>
+        <div class="form-group">
+          <label>Program Location</label>
+          <input type="text" id="eb_programLocation">
+        </div>
+        <div class="form-group">
+          <label>Pattern Description</label>
+          <input type="text" id="eb_patternDescription">
+        </div>
+        <div class="form-group">
+          <label>Machine Type</label>
+          <input type="text" id="eb_machineTypeDesc">
+        </div>
+        <div class="form-group">
+          <label>Bundle QTY</label>
+          <input type="number" id="eb_bundleQty" min="1">
+        </div>
+        <div class="form-group">
+          <label>Size Description</label>
+          <input type="text" id="eb_sizeDescription">
+        </div>
+        <div class="form-group">
+          <label>Knitting Instructions</label>
+          <input type="text" id="eb_knittingInstructions">
+        </div>
+        <div class="form-group">
+          <label>CMT Instructions</label>
+          <input type="text" id="eb_cmtInstructions">
+        </div>
+        <div class="form-group">
+          <label>Colour 1</label>
+          <input type="text" id="eb_colour1">
+        </div>
+        <div class="form-group">
+          <label>Colour 2</label>
+          <input type="text" id="eb_colour2">
+        </div>
+        <div class="form-group">
+          <label>Colour 3</label>
+          <input type="text" id="eb_colour3">
+        </div>
+        <div class="form-group">
+          <label>Colour 4</label>
+          <input type="text" id="eb_colour4">
+        </div>
+        <div class="form-group">
+          <label>Style</label>
+          <input type="text" id="eb_style">
+        </div>
+        <div class="form-group">
+          <label>No. of Panels</label>
+          <input type="number" id="eb_noOfPanels" min="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('bundleEditModal')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveBundleEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT MODAL -->
+<div class="modal-overlay hidden" id="printModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2>🖨️ Print Tickets</h2>
+      <button class="close-btn" onclick="closeModal('printModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label style="font-weight:600;">Select tickets to print:</label>
+        <button class="btn btn-sm btn-outline" onclick="selectAllPrint(true)">Select All</button>
+        <button class="btn btn-sm btn-outline" onclick="selectAllPrint(false)">Deselect All</button>
+        <span id="selectedCount" style="color:#6b7280;font-size:12px;"></span>
+      </div>
+      <div id="printTicketGrid" class="ticket-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('printModal')">Cancel</button>
+      <button class="btn btn-blue" onclick="printSelected()">🖨️ Print Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div class="print-area" id="printArea"></div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────────────────────
+let state = {
+  lastOrderNumber: 0,
+  lastProductCodeNumber: 0,
+  lastCustomer: '',
+  lastAbr: '',
+  orderCreated: false,
+  currentOrder: null,
+  products: [],
+  allBundles: [],
+};
+let editingProductCode = null;   // null = new product; string = product code being edited
+let progDescManual = false;       // true when user has manually edited programDescription
+
+// ─── Init ──────────────────────────────────────────────────────────────────────────────────
+function loadState() {
+  const saved = localStorage.getItem('beanieTicketState');
+  if (saved) {
+    const s = JSON.parse(saved);
+    state.lastOrderNumber       = s.lastOrderNumber       || 0;
+    state.lastProductCodeNumber = s.lastProductCodeNumber || 0;
+    state.lastCustomer          = s.lastCustomer          || '';
+    state.lastAbr               = s.lastAbr               || '';
+    state.orderCreated          = s.orderCreated          || false;
+    state.currentOrder          = s.currentOrder          || null;
+    state.products              = s.products              || [];
+    state.allBundles            = s.allBundles            || [];
+  }
+}
+function saveState() { localStorage.setItem('beanieTicketState', JSON.stringify(state)); }
+
+function isoToInputDate(iso) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayInputDate() { return isoToInputDate(new Date().toISOString()); }
+
+function init() {
+  loadState();
+  document.getElementById('dateIssued').value = todayInputDate();
+  document.getElementById('displayLastOrder').textContent = state.lastOrderNumber;
+  if (state.orderCreated && state.currentOrder) {
+    document.getElementById('customer').value = state.currentOrder.customer;
+    document.getElementById('abr').value = state.currentOrder.abr;
+    document.getElementById('dateIssued').value = isoToInputDate(state.currentOrder.dateIssued);
+    updateDerived();
+    showOrderSummary();
+    showProductForm();
+    if (state.allBundles.length > 0) renderBundlesTable();
+  }
+}
+
+// ─── Derived Computations ──────────────────────────────────────────────────────────────────
+function formatDate(d) {
+  const date = d instanceof Date ? d : new Date(d);
+  if (isNaN(date)) return d;
+  return date.toLocaleDateString('en-AU', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function inputDateToISO(val) {
+  if (!val) return new Date().toISOString();
+  return new Date(val + 'T00:00:00').toISOString();
+}
+
+function computeOrderDesc(abr, orderNum) { return abr + orderNum; }
+function computeProductCode(pcNum) { return 'BN' + pcNum; }
+function computeProgDesc(style, c1, c2, c3, c4, descAdd) {
+  const colours = [c1,c2,c3,c4].filter(c => c && c.trim() && c.trim() !== '').join('*');
+  return `${style}-${colours}-${descAdd}`;
+}
+function computeBatchNumber(pc) { return pc + 'BCH1'; }
+function computeBundleName(batchNum, n) { return batchNum + '-PO' + n; }
+
+function updateDerived() {
+  const abr = document.getElementById('abr').value.trim();
+  const orderNum = (state.orderCreated && state.currentOrder)
+    ? state.currentOrder.orderNum : state.lastOrderNumber + 1;
+  document.getElementById('orderDescription').value = computeOrderDesc(abr, orderNum);
+
+  const pcNum = editingProductCode
+    ? parseInt(editingProductCode.replace('BN',''))
+    : state.lastProductCodeNumber + 1;
+  const pc = computeProductCode(pcNum);
+  document.getElementById('productCode').value = pc;
+  document.getElementById('displayProductCode').textContent = pc;
+
+  if (!progDescManual) autoFillProgDesc();
+}
+
+// Soft update — only updates prog desc if not manually overridden
+function updateDerivedSoft() {
+  if (!progDescManual) autoFillProgDesc();
+}
+
+function autoFillProgDesc() {
+  const style = document.getElementById('style').value.trim();
+  const c1    = document.getElementById('colour1').value.trim();
+  const c2    = document.getElementById('colour2').value.trim();
+  const c3    = document.getElementById('colour3').value.trim();
+  const c4    = document.getElementById('colour4').value.trim();
+  const da    = document.getElementById('productDescAddition').value.trim();
+  document.getElementById('programDescription').value = computeProgDesc(style,c1,c2,c3,c4,da);
+}
+
+function resetProgDesc() {
+  progDescManual = false;
+  autoFillProgDesc();
+}
+
+// Mark prog desc as manually edited when user types directly in it
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('programDescription').addEventListener('input', () => {
+    progDescManual = true;
+  });
+});
+
+// ─── Bundle Calculation ──────────────────────────────────────────────────────────────────────────
+function calculateBundles(batchQty, bundleSize) {
+  const full = Math.floor(batchQty / bundleSize);
+  const rem  = batchQty % bundleSize;
+  const out  = [];
+  if (rem === 0) {
+    for (let i = 0; i < full; i++) out.push(bundleSize);
+  } else if (full === 0) {
+    out.push(rem);
+  } else if (rem <= 10) {
+    for (let i = 0; i < full - 1; i++) out.push(bundleSize);
+    out.push(bundleSize + rem);
+  } else {
+    for (let i = 0; i < full; i++) out.push(bundleSize);
+    out.push(rem);
+  }
+  return out;
+}
+
+// ─── Order Actions ────────────────────────────────────────────────────────────────────────────
+function createOrder() {
+  const customer = document.getElementById('customer').value.trim();
+  const abr      = document.getElementById('abr').value.trim();
+  if (!customer || !abr) { alert('Please enter Customer and ABR.'); return; }
+
+  const orderNum = state.lastOrderNumber + 1;
+  const dateVal  = document.getElementById('dateIssued').value;
+  state.currentOrder = {
+    customer, abr, orderNum,
+    orderDesc : computeOrderDesc(abr, orderNum),
+    dateIssued: inputDateToISO(dateVal),
+  };
+  state.orderCreated    = true;
+  state.lastOrderNumber = orderNum;
+  state.lastCustomer    = customer;
+  state.lastAbr         = abr;
+  state.products        = [];
+  state.allBundles      = [];
+  saveState();
+
+  document.getElementById('displayLastOrder').textContent = orderNum;
+  updateDerived();
+  showOrderSummary();
+  showProductForm();
+  document.getElementById('bundlesCard').classList.add('hidden');
+}
+
+function showOrderSummary() {
+  const o = state.currentOrder;
+  document.getElementById('orderSummaryCard').classList.remove('hidden');
+  document.getElementById('summaryHeaderBody').innerHTML = `
+    <tr>
+      <td>${o.orderDesc}</td><td>${o.customer}</td>
+      <td>${o.abr}</td><td>${formatDate(o.dateIssued)}</td>
+    </tr>`;
+  renderProductsSummary();
+}
+
+function renderProductsSummary() {
+  const tbody = document.getElementById('summaryProductsBody');
+  if (state.products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="color:#9ca3af;text-align:center;">No products yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.products.map(p => {
+    const colours = [p.colour1,p.colour2,p.colour3,p.colour4].filter(c=>c&&c!=='').join(', ');
+    const cnt = state.allBundles.filter(b => b.productCode === p.productCode).length;
+    return `<tr>
+      <td>
+        <div class="action-cell">
+          <button class="btn btn-xs btn-amber" onclick="editProduct('${p.productCode}')">✏️ Edit</button>
+          <button class="btn btn-xs btn-red"   onclick="removeProduct('${p.productCode}')">🗑 Remove</button>
+        </div>
+      </td>
+      <td>${p.productCode}</td>
+      <td>${p.programDescription}</td>
+      <td>${p.patternDescription}</td>
+      <td>${p.machineTypeDesc}</td>
+      <td>${p.sizeDescription}</td>
+      <td>${colours}</td>
+      <td>${p.bundleSize}</td>
+      <td>${p.batchTotalQty}</td>
+      <td>${cnt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showProductForm() {
+  document.getElementById('productDetailsCard').classList.remove('hidden');
+  updateDerived();
+}
+
+function startNewOrder() {
+  if ((state.allBundles.length > 0 || state.products.length > 0) &&
+      !confirm('Start a new order? The current order will be cleared.')) return;
+  state.orderCreated = false;
+  state.currentOrder = null;
+  state.products     = [];
+  state.allBundles   = [];
+  editingProductCode = null;
+  progDescManual     = false;
+  saveState();
+  document.getElementById('customer').value = '';
+  document.getElementById('abr').value      = '';
+  document.getElementById('orderDescription').value = '';
+  document.getElementById('dateIssued').value = todayInputDate();
+  resetProductFormFull();
+  document.getElementById('orderSummaryCard').classList.add('hidden');
+  document.getElementById('productDetailsCard').classList.add('hidden');
+  document.getElementById('bundlesCard').classList.add('hidden');
+  document.getElementById('editModeBanner').classList.add('hidden');
+  document.getElementById('displayLastOrder').textContent = state.lastOrderNumber;
+  updateDerived();
+}
+
+// ─── Product Edit / Remove ────────────────────────────────────────────────────────────────────────
+function editProduct(productCode) {
+  const p = state.products.find(x => x.productCode === productCode);
+  if (!p) return;
+
+  editingProductCode = productCode;
+  progDescManual     = true;  // load the saved desc without overwriting
+
+  document.getElementById('productCode').value          = p.productCode;
+  document.getElementById('displayProductCode').textContent = p.productCode;
+  document.getElementById('programDescription').value   = p.programDescription;
+  document.getElementById('productDescAddition').value  = p.productDescAddition || 'Blend';
+  document.getElementById('bundleSize').value            = p.bundleSize;
+  document.getElementById('batchTotalQty').value         = p.batchTotalQty;
+  document.getElementById('noOfPanels').value            = p.noOfPanels || 1;
+  document.getElementById('style').value                 = p.style || '';
+  document.getElementById('patternDescription').value    = p.patternDescription;
+  document.getElementById('machineTypeDesc').value       = p.machineTypeDesc;
+  document.getElementById('sizeDescription').value       = p.sizeDescription;
+  document.getElementById('productTypeDesc').value       = p.productTypeDesc || 'Beanie';
+  document.getElementById('colour1').value               = p.colour1 || '';
+  document.getElementById('colour2').value               = p.colour2 || '';
+  document.getElementById('colour3').value               = p.colour3 || '';
+  document.getElementById('colour4').value               = p.colour4 || 'x';
+  document.getElementById('cmtInstructions').value       = p.cmtInstructions || 'None';
+  document.getElementById('knittingInstructions').value  = p.knittingInstructions || 'None';
+  document.getElementById('programLocation').value       = p.programLocation || '';
+
+  document.getElementById('editModeLabel').textContent = productCode;
+  document.getElementById('editModeBanner').classList.remove('hidden');
+  document.getElementById('productDetailsCard').classList.remove('hidden');
+  document.getElementById('productDetailsCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEditProduct() {
+  editingProductCode = null;
+  progDescManual     = false;
+  document.getElementById('editModeBanner').classList.add('hidden');
+  resetProductFormFull();
+  updateDerived();
+}
+
+function removeProduct(productCode) {
+  const cnt = state.allBundles.filter(b => b.productCode === productCode).length;
+  if (!confirm(`Remove product ${productCode} and its ${cnt} bundle(s)?`)) return;
+  state.products   = state.products.filter(p => p.productCode !== productCode);
+  state.allBundles = state.allBundles.filter(b => b.productCode !== productCode);
+  // Re-number ticketMasterIds
+  state.allBundles.forEach((b, i) => { b.ticketMasterId = i + 1; });
+  saveState();
+  renderProductsSummary();
+  if (state.allBundles.length > 0) renderBundlesTable();
+  else document.getElementById('bundlesCard').classList.add('hidden');
+}
+
+// ─── Create / Update Ticket Bundles ──────────────────────────────────────────────────────────────────────
+function createTicketBundles() {
+  if (!state.orderCreated) { alert('Please create an order first.'); return; }
+
+  const batchQty = parseInt(document.getElementById('batchTotalQty').value) || 0;
+  const bundleSz = parseInt(document.getElementById('bundleSize').value)     || 50;
+  if (batchQty < 1) { alert('Please enter a valid Batch Total QTY.'); return; }
+
+  const isEditing = !!editingProductCode;
+  const pcNum     = isEditing
+    ? parseInt(editingProductCode.replace('BN',''))
+    : state.lastProductCodeNumber + 1;
+  const pc       = computeProductCode(pcNum);
+  const batchNum = computeBatchNumber(pc);
+
+  const style    = document.getElementById('style').value.trim();
+  const c1       = document.getElementById('colour1').value.trim();
+  const c2       = document.getElementById('colour2').value.trim();
+  const c3       = document.getElementById('colour3').value.trim();
+  const c4       = document.getElementById('colour4').value.trim();
+  const da       = document.getElementById('productDescAddition').value.trim();
+  const progDesc = document.getElementById('programDescription').value.trim()
+                   || computeProgDesc(style,c1,c2,c3,c4,da);
+  const patDesc  = document.getElementById('patternDescription').value.trim();
+  const machine  = document.getElementById('machineTypeDesc').value.trim();
+  const size     = document.getElementById('sizeDescription').value.trim();
+  const panels   = parseInt(document.getElementById('noOfPanels').value) || 1;
+  const cmt      = document.getElementById('cmtInstructions').value.trim();
+  const knitting = document.getElementById('knittingInstructions').value.trim();
+  const prodType = document.getElementById('productTypeDesc').value.trim();
+  const progLoc  = document.getElementById('programLocation').value.trim();
+  const dateIso  = new Date().toISOString();
+
+  const qtys         = calculateBundles(batchQty, bundleSz);
+  const totalBundles = qtys.length;
+
+  if (isEditing) {
+    // Remove old bundles for this product
+    state.allBundles = state.allBundles.filter(b => b.productCode !== pc);
+    state.products   = state.products.filter(p => p.productCode !== pc);
+  }
+
+  const ticketBase = state.allBundles.length;
+  const newBundles = qtys.map((qty, i) => ({
+    ticketMasterId     : ticketBase + i + 1,
+    bundleNumber       : i + 1,
+    bundleName         : computeBundleName(batchNum, i + 1),
+    dateIssued         : dateIso,
+    batchNumber        : batchNum,
+    productCode        : pc,
+    productDescription : progDesc,
+    programDescription : progDesc,
+    programLocation    : progLoc,
+    patternDescription : patDesc,
+    machineTypeDesc    : machine,
+    totalBundles,
+    orderDescription   : state.currentOrder.orderDesc,
+    customerDescription: state.currentOrder.customer,
+    knittingInstructions: knitting,
+    bundleQty          : qty,
+    sizeDescription    : size,
+    batchQty,
+    productTypeDesc    : prodType,
+    noOfPanels         : panels,
+    colour1: c1, colour2: c2, colour3: c3, colour4: c4,
+    cmtInstructions    : cmt,
+    style,
+  }));
+
+  const productRecord = {
+    productCode: pc, programDescription: progDesc, patternDescription: patDesc,
+    machineTypeDesc: machine, sizeDescription: size, bundleSize: bundleSz,
+    batchTotalQty: batchQty, colour1: c1, colour2: c2, colour3: c3, colour4: c4,
+    style, noOfPanels: panels, productTypeDesc: prodType, productDescAddition: da,
+    cmtInstructions: cmt, knittingInstructions: knitting, programLocation: progLoc,
+  };
+
+  state.products.push(productRecord);
+  state.allBundles.push(...newBundles);
+  if (!isEditing) state.lastProductCodeNumber = pcNum;
+  saveState();
+
+  renderBundlesTable();
+  renderProductsSummary();
+  showBundleSummary(newBundles, productRecord, isEditing);
+
+  editingProductCode = null;
+  progDescManual     = false;
+  document.getElementById('editModeBanner').classList.add('hidden');
+  resetProductForm();
+  updateDerived();
+}
+
+// ─── Bundle Summary (replaces preview modal) ─────────────────────────────────────────────────────────────────────
+function showBundleSummary(bundles, product, isEdit) {
+  const colours = [product.colour1,product.colour2,product.colour3,product.colour4]
+    .filter(c=>c&&c!=='').join(', ');
+  document.getElementById('summaryKV').innerHTML = `
+    <div class="kv"><span class="kv-label">Product Code</span><span class="kv-value">${product.productCode}</span></div>
+    <div class="kv"><span class="kv-label">Batch QTY</span><span class="kv-value">${product.batchTotalQty}</span></div>
+    <div class="kv"><span class="kv-label">Bundle Size</span><span class="kv-value">${product.bundleSize}</span></div>
+    <div class="kv"><span class="kv-label">Bundles Created</span><span class="kv-value">${bundles.length}</span></div>
+    <div class="kv"><span class="kv-label">Pattern</span><span class="kv-value">${product.patternDescription||'—'}</span></div>
+    <div class="kv"><span class="kv-label">Colours</span><span class="kv-value">${colours||'—'}</span></div>
+    <div class="kv" style="grid-column:span 3"><span class="kv-label">Program Description</span><span class="kv-value">${product.programDescription}</span></div>`;
+  document.getElementById('summaryBundleRows').innerHTML = bundles.map(b => `
+    <tr>
+      <td>${b.bundleNumber}</td>
+      <td><strong>${b.bundleName}</strong></td>
+      <td>${b.bundleQty}</td>
+    </tr>`).join('');
+  document.getElementById('bundleSummaryModal').classList.remove('hidden');
+}
+
+// ─── Bundle Row Edit / Remove ─────────────────────────────────────────────────────────────────────────────
+function editBundle(ticketMasterId) {
+  const b = state.allBundles.find(x => x.ticketMasterId === ticketMasterId);
+  if (!b) return;
+  document.getElementById('editBundleId').value          = ticketMasterId;
+  document.getElementById('eb_dateIssued').value          = isoToInputDate(b.dateIssued);
+  document.getElementById('eb_programDescription').value  = b.programDescription;
+  document.getElementById('eb_productDescription').value  = b.productDescription;
+  document.getElementById('eb_programLocation').value     = b.programLocation || '';
+  document.getElementById('eb_patternDescription').value  = b.patternDescription;
+  document.getElementById('eb_machineTypeDesc').value     = b.machineTypeDesc;
+  document.getElementById('eb_bundleQty').value           = b.bundleQty;
+  document.getElementById('eb_sizeDescription').value     = b.sizeDescription;
+  document.getElementById('eb_knittingInstructions').value= b.knittingInstructions;
+  document.getElementById('eb_cmtInstructions').value     = b.cmtInstructions;
+  document.getElementById('eb_colour1').value             = b.colour1 || '';
+  document.getElementById('eb_colour2').value             = b.colour2 || '';
+  document.getElementById('eb_colour3').value             = b.colour3 || '';
+  document.getElementById('eb_colour4').value             = b.colour4 || '';
+  document.getElementById('eb_style').value               = b.style || '';
+  document.getElementById('eb_noOfPanels').value          = b.noOfPanels;
+  document.getElementById('bundleEditModal').classList.remove('hidden');
+}
+
+function saveBundleEdit() {
+  const id = parseInt(document.getElementById('editBundleId').value);
+  const b  = state.allBundles.find(x => x.ticketMasterId === id);
+  if (!b) return;
+  b.dateIssued          = inputDateToISO(document.getElementById('eb_dateIssued').value);
+  b.programDescription  = document.getElementById('eb_programDescription').value.trim();
+  b.productDescription  = document.getElementById('eb_productDescription').value.trim();
+  b.programLocation     = document.getElementById('eb_programLocation').value.trim();
+  b.patternDescription  = document.getElementById('eb_patternDescription').value.trim();
+  b.machineTypeDesc     = document.getElementById('eb_machineTypeDesc').value.trim();
+  b.bundleQty           = parseInt(document.getElementById('eb_bundleQty').value) || b.bundleQty;
+  b.sizeDescription     = document.getElementById('eb_sizeDescription').value.trim();
+  b.knittingInstructions= document.getElementById('eb_knittingInstructions').value.trim();
+  b.cmtInstructions     = document.getElementById('eb_cmtInstructions').value.trim();
+  b.colour1             = document.getElementById('eb_colour1').value.trim();
+  b.colour2             = document.getElementById('eb_colour2').value.trim();
+  b.colour3             = document.getElementById('eb_colour3').value.trim();
+  b.colour4             = document.getElementById('eb_colour4').value.trim();
+  b.style               = document.getElementById('eb_style').value.trim();
+  b.noOfPanels          = parseInt(document.getElementById('eb_noOfPanels').value) || b.noOfPanels;
+  saveState();
+  renderBundlesTable();
+  closeModal('bundleEditModal');
+}
+
+function removeBundle(ticketMasterId) {
+  if (!confirm('Remove this bundle ticket?')) return;
+  state.allBundles = state.allBundles.filter(x => x.ticketMasterId !== ticketMasterId);
+  state.allBundles.forEach((b, i) => { b.ticketMasterId = i + 1; });
+  saveState();
+  renderBundlesTable();
+  renderProductsSummary();
+}
+
+// ─── Bundles Table ──────────────────────────────────────────────────────────────────────────────────
+function renderBundlesTable() {
+  document.getElementById('bundlesCard').classList.remove('hidden');
+  document.getElementById('bundlesBody').innerHTML = state.allBundles.map(b => `
+    <tr>
+      <td>
+        <div class="action-cell">
+          <button class="btn btn-xs btn-amber" onclick="editBundle(${b.ticketMasterId})">✏️</button>
+          <button class="btn btn-xs btn-red"   onclick="removeBundle(${b.ticketMasterId})">🗑</button>
+        </div>
+      </td>
+      <td>${b.ticketMasterId}</td>
+      <td>${b.bundleNumber}</td>
+      <td><strong>${b.bundleName}</strong></td>
+      <td>${formatDate(b.dateIssued)}</td>
+      <td>${b.batchNumber}</td>
+      <td>${b.productCode}</td>
+      <td>${b.programDescription}</td>
+      <td>${b.patternDescription}</td>
+      <td>${b.machineTypeDesc}</td>
+      <td>${b.totalBundles}</td>
+      <td>${b.orderDescription}</td>
+      <td>${b.customerDescription}</td>
+      <td>${b.bundleQty}</td>
+      <td>${b.sizeDescription}</td>
+      <td>${b.batchQty}</td>
+      <td>${b.productTypeDesc}</td>
+      <td>${b.noOfPanels}</td>
+      <td>${b.colour1}</td><td>${b.colour2}</td><td>${b.colour3}</td><td>${b.colour4}</td>
+      <td>${b.cmtInstructions}</td>
+      <td>${b.style}</td>
+    </tr>`).join('');
+}
+
+// ─── Form Helpers ───────────────────────────────────────────────────────────────────────────────────
+function resetProductForm() {
+  document.getElementById('batchTotalQty').value  = '';
+  document.getElementById('colour1').value        = '';
+  document.getElementById('colour2').value        = '';
+  document.getElementById('colour3').value        = '';
+  document.getElementById('colour4').value        = 'x';
+  document.getElementById('patternDescription').value = '';
+  document.getElementById('programLocation').value    = '';
+  document.getElementById('programDescription').value = '';
+}
+function resetProductFormFull() {
+  resetProductForm();
+  document.getElementById('style').value              = 'BN_TU';
+  document.getElementById('productTypeDesc').value    = 'Beanie';
+  document.getElementById('sizeDescription').value    = 'STD';
+  document.getElementById('machineTypeDesc').value    = '502HP';
+  document.getElementById('bundleSize').value         = '50';
+  document.getElementById('noOfPanels').value         = '1';
+  document.getElementById('cmtInstructions').value    = 'None';
+  document.getElementById('knittingInstructions').value = 'None';
+  document.getElementById('productDescAddition').value  = 'Blend';
+}
+
+// ─── Print Modal ──────────────────────────────────────────────────────────────────────────────────
+let printSelectionIds = new Set();
+
+function openPrintModal() {
+  if (state.allBundles.length === 0) { alert('No bundles to print.'); return; }
+  printSelectionIds = new Set(state.allBundles.map(b => b.ticketMasterId));
+  const grid = document.getElementById('printTicketGrid');
+  grid.innerHTML = state.allBundles.map(b => renderTicketCard(b)).join('');
+  grid.querySelectorAll('.ticket-card').forEach(el => el.classList.add('selected'));
+  updateSelectedCount();
+  document.getElementById('printModal').classList.remove('hidden');
+}
+
+function renderTicketCard(b) {
+  const colours = [[b.colour1,'C1'],[b.colour2,'C2'],[b.colour3,'C3'],[b.colour4,'C4']]
+    .filter(([c]) => c && c.trim() && c !== '');
+  const colHTML = colours.map(([c,l]) => `
+    <div class="ticket-field"><span class="ticket-label">${l}</span><div class="ticket-value">${c}</div></div>`).join('');
+  return `
+  <div class="ticket-card" data-id="${b.ticketMasterId}" onclick="toggleTicketSelect(this)">
+    <div class="ticket-header"><span>🧶 Knitting Ticket</span><span>${b.bundleName}</span></div>
+    <div class="ticket-body">
+      <div class="ticket-row">
+        <div class="ticket-field"><span class="ticket-label">Date</span><div class="ticket-value">${formatDate(b.dateIssued)}</div></div>
+        <div class="ticket-field"><span class="ticket-label">Batch No</span><div class="ticket-value">${b.batchNumber}</div></div>
+      </div>
+      <div class="ticket-row">
+        <div class="ticket-field"><span class="ticket-label">Product Code</span><div class="ticket-value">${b.productCode}</div></div>
+        <div class="ticket-field"><span class="ticket-label">Bundle QTY</span><div class="ticket-value">${b.bundleQty}</div></div>
+        <div class="ticket-field"><span class="ticket-label">Batch QTY</span><div class="ticket-value">${b.batchQty}</div></div>
+      </div>
+      <div class="ticket-row">
+        <div class="ticket-field" style="flex:2"><span class="ticket-label">Prog Desc</span><div class="ticket-value">${b.programDescription}</div></div>
+      </div>
+      <div class="ticket-row">
+        <div class="ticket-field"><span class="ticket-label">Pattern</span><div class="ticket-value">${b.patternDescription}</div></div>
+        <div class="ticket-field"><span class="ticket-label">Machine</span><div class="ticket-value">${b.machineTypeDesc}</div></div>
+        <div class="ticket-field"><span class="ticket-label">Size</span><div class="ticket-value">${b.sizeDescription}</div></div>
+      </div>
+      <div class="ticket-row">${colHTML}</div>
+      <div class="ticket-section">CMT</div>
+      <div class="ticket-row"><div class="ticket-field"><div class="ticket-value">${b.cmtInstructions}</div></div></div>
+    </div>
+  </div>`;
+}
+
+function toggleTicketSelect(el) {
+  const id = parseInt(el.dataset.id);
+  if (printSelectionIds.has(id)) { printSelectionIds.delete(id); el.classList.remove('selected'); }
+  else                           { printSelectionIds.add(id);    el.classList.add('selected');    }
+  updateSelectedCount();
+}
+function selectAllPrint(sel) {
+  document.getElementById('printTicketGrid').querySelectorAll('.ticket-card').forEach(el => {
+    const id = parseInt(el.dataset.id);
+    if (sel) { printSelectionIds.add(id); el.classList.add('selected'); }
+    else     { printSelectionIds.delete(id); el.classList.remove('selected'); }
+  });
+  updateSelectedCount();
+}
+function updateSelectedCount() {
+  document.getElementById('selectedCount').textContent =
+    `${printSelectionIds.size} of ${state.allBundles.length} selected`;
+}
+
+function printSelected() {
+  if (printSelectionIds.size === 0) { alert('No tickets selected.'); return; }
+  const selected = state.allBundles.filter(b => printSelectionIds.has(b.ticketMasterId));
+  const pages = [];
+  for (let i = 0; i < selected.length; i += 4) pages.push(selected.slice(i, i+4));
+  document.getElementById('printArea').innerHTML = pages.map(page => `
+    <div class="ticket-page">
+      ${page.map(b => renderPrintTicket(b)).join('')}
+      ${page.length < 4 ? Array(4-page.length).fill('<div class="ticket-print" style="visibility:hidden;"></div>').join('') : ''}
+    </div>`).join('');
+  closeModal('printModal');
+  window.print();
+}
+
+function renderPrintTicket(b) {
+  const colours = [[b.colour1,'Colour 1'],[b.colour2,'Colour 2'],[b.colour3,'Colour 3'],[b.colour4,'Colour 4']]
+    .filter(([c]) => c && c.trim() && c !== '');
+  const colHTML = colours.map(([c,l]) => `
+    <div class="tp-field"><span class="tp-label">${l}</span><span class="tp-value">${c}</span></div>`).join('');
+  return `
+  <div class="ticket-print">
+    <div class="tp-header"><span>KNITTING TICKET — OPERATOR</span><span>${b.bundleName}</span></div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">Date Issued</span><span class="tp-value">${formatDate(b.dateIssued)}</span></div>
+      <div class="tp-field"><span class="tp-label">Batch No</span><span class="tp-value">${b.batchNumber}</span></div>
+      <div class="tp-field"><span class="tp-label">Bundle No</span><span class="tp-value">${b.bundleName}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">Product Code</span><span class="tp-value">${b.productCode}</span></div>
+      <div class="tp-field" style="flex:3"><span class="tp-label">Prod Description</span><span class="tp-value">${b.productDescription}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field" style="flex:2"><span class="tp-label">Pattern Program Name</span><span class="tp-value">${b.programDescription}</span></div>
+      <div class="tp-field" style="flex:2"><span class="tp-label">Pattern Location</span><span class="tp-value">${b.programLocation||''}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field" style="flex:2"><span class="tp-label">Pattern Description</span><span class="tp-value">${b.patternDescription}</span></div>
+      <div class="tp-field"><span class="tp-label">Machine No</span><span class="tp-value">${b.machineTypeDesc}</span></div>
+      <div class="tp-field"><span class="tp-label">Total Bundles</span><span class="tp-value">${b.totalBundles}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">Order No</span><span class="tp-value">${b.orderDescription}</span></div>
+      <div class="tp-field"><span class="tp-label">Customer</span><span class="tp-value">${b.customerDescription}</span></div>
+      <div class="tp-field" style="flex:2"><span class="tp-label">Knitting Instruction</span><span class="tp-value">${b.knittingInstructions}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">Panels To Make</span><span class="tp-value">${b.bundleQty}</span></div>
+      <div class="tp-field"><span class="tp-label">Size</span><span class="tp-value">${b.sizeDescription}</span></div>
+      <div class="tp-field"><span class="tp-label">Batch Total QTY</span><span class="tp-value">${b.batchQty}</span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">Component</span><span class="tp-value">${b.productTypeDesc}</span></div>
+      <div class="tp-field"><span class="tp-label">Qty Per Panel</span><span class="tp-value">${b.noOfPanels}</span></div>
+      <div class="tp-field"><span class="tp-label">Bundle Weight</span><span class="tp-write"></span></div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-field" style="flex:2"><span class="tp-label">Yarn Colours</span>
+        <div class="colour-block">${colHTML}</div>
+      </div>
+      <div class="tp-field"><span class="tp-label">Dyelot</span><span class="tp-write"></span></div>
+    </div>
+    <div class="tp-write-row">
+      <div class="tp-write-field"><span class="tp-label">Date Started</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Date Complete</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Waste Weight</span><span class="tp-write"></span></div>
+    </div>
+    <div class="tp-write-row">
+      <div class="tp-write-field"><span class="tp-label">Panels Made Day</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Operator Day</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Checked By</span><span class="tp-write"></span></div>
+    </div>
+    <div class="tp-write-row">
+      <div class="tp-write-field"><span class="tp-label">Panels Made Night</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Operator Night</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Checked Date</span><span class="tp-write"></span></div>
+    </div>
+    <div class="tp-section">CMT TICKET — OPERATOR</div>
+    <div class="tp-row">
+      <div class="tp-field"><span class="tp-label">CMT Instructions</span><span class="tp-value">${b.cmtInstructions}</span></div>
+    </div>
+    <div class="tp-write-row">
+      <div class="tp-write-field"><span class="tp-label">Panels Closed</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Operator</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Panels Shaped</span><span class="tp-write"></span></div>
+      <div class="tp-write-field"><span class="tp-label">Operator</span><span class="tp-write"></span></div>
+    </div>
+  </div>`;
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function toggleSection(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+init();
+</script>
+</body>
+</html>
